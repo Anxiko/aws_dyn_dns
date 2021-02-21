@@ -2,7 +2,7 @@ import json
 from dataclasses import dataclass
 from logging import Logger
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, List, Dict
 
 import boto3
 import requests
@@ -16,12 +16,12 @@ HOSTED_ZONE_CONFIG_FILENAME: str = 'hosted_zone_config.json'
 
 
 def _validate_ip_v4(raw_ip_v4: str) -> str:
-	raw_bytes: list[str] = raw_ip_v4.strip().split('.')
+	raw_bytes: List[str] = raw_ip_v4.strip().split('.')
 
 	if len(raw_bytes) != 4:
 		raise ValueError(f"Number of bytes ({len(raw_bytes)}) does not match expected length for {raw_ip_v4}")
 
-	parsed_bytes: list[int] = []
+	parsed_bytes: List[int] = []
 
 	for raw_byte in raw_bytes:
 		parsed_byte: int
@@ -49,7 +49,7 @@ def get_public_ip_v4() -> str:
 
 
 def get_boto3_session() -> boto3.Session:
-	loaded_json: dict[str, str]
+	loaded_json: Dict[str, str]
 	with open(BASE_CONFIG_PATH / AWS_CONFIG_FILENAME, encoding='utf-8') as f:
 		loaded_json = json.load(f)
 
@@ -89,7 +89,7 @@ class RecordInfo:
 
 def load_record_info() -> RecordInfo:
 	with open(BASE_CONFIG_PATH / HOSTED_ZONE_CONFIG_FILENAME, encoding='utf-8') as f:
-		parsed_record_info: dict[str, Any] = json.load(f)
+		parsed_record_info: Dict[str, Any] = json.load(f)
 		return RecordInfo(**parsed_record_info)
 
 
@@ -102,15 +102,15 @@ if __name__ == '__main__':
 		session: boto3.Session = get_boto3_session()
 		route_53_client = session.client('route53')
 
-		hosted_zones: list[dict[str, Any]] = route_53_client.list_hosted_zones_by_name()['HostedZones']
-		target_hosted_zone: dict[str, Any] = next(
+		hosted_zones: List[Dict[str, Any]] = route_53_client.list_hosted_zones_by_name()['HostedZones']
+		target_hosted_zone: Dict[str, Any] = next(
 			filter(lambda hz: hz['Name'] == record_info.target_hosted_zone_name, hosted_zones))
 
-		target_hosted_zone_records: list[dict[str, Any]] = route_53_client.list_resource_record_sets(
+		target_hosted_zone_records: List[Dict[str, Any]] = route_53_client.list_resource_record_sets(
 			HostedZoneId=target_hosted_zone['Id']
 		)['ResourceRecordSets']
 
-		target_record: Optional[dict[str, Any]] = next(
+		target_record: Optional[Dict[str, Any]] = next(
 			filter(lambda r: r['Name'] == record_info.target_record_set_name, target_hosted_zone_records), None
 		)
 
