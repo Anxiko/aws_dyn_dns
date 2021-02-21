@@ -97,24 +97,30 @@ def load_record_info() -> RecordInfo:
 
 if __name__ == '__main__':
 	try:
+		logger.info(f"Running...")
 		record_info: RecordInfo = load_record_info()
 
 		public_ip: str = get_public_ip_v4()
+		logger.info(f"IPv4 is {public_ip}")
 
 		session: boto3.Session = get_boto3_session()
 		route_53_client = session.client('route53')
 
 		hosted_zones: List[Dict[str, Any]] = route_53_client.list_hosted_zones_by_name()['HostedZones']
+		logger.debug(f"Found {len(hosted_zones)} hosted zone(s)")
 		target_hosted_zone: Dict[str, Any] = next(
 			filter(lambda hz: hz['Name'] == record_info.target_hosted_zone_name, hosted_zones))
+		logger.info(f"Target hosted zone is {target_hosted_zone}")
 
 		target_hosted_zone_records: List[Dict[str, Any]] = route_53_client.list_resource_record_sets(
 			HostedZoneId=target_hosted_zone['Id']
 		)['ResourceRecordSets']
+		logger.debug(f"Found {len(target_hosted_zone_records)} record set(s) on target hosted zone")
 
 		target_record: Optional[Dict[str, Any]] = next(
 			filter(lambda r: r['Name'] == record_info.target_record_set_name, target_hosted_zone_records), None
 		)
+		logger.info(f"Target record set is {target_record}")
 
 		update_route_53_record_set(
 			route_53_client,
@@ -126,6 +132,7 @@ if __name__ == '__main__':
 
 			record_set_value=public_ip,
 		)
+		logger.info(f"Target record set updated!")
 
 	except Exception as e:
 		logger.critical(f"Unhandled exception: {e!r}", exc_info=True)
