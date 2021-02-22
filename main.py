@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import json
+import logging.config
 from dataclasses import dataclass
 from logging import Logger
 from pathlib import Path
@@ -9,12 +10,46 @@ from typing import Any, Optional, List, Dict
 import boto3
 import requests
 
-logger: Logger = Logger(__name__)
-
 BASE_CONFIG_PATH: Path = Path('./.config')
+
+APP_LOGGER_ROOT_NAME: str = 'aws_dyn_ip'
 
 AWS_CONFIG_FILENAME: str = 'aws_config.json'
 HOSTED_ZONE_CONFIG_FILENAME: str = 'hosted_zone_config.json'
+
+logging.config.dictConfig({
+	'version': 1,
+	'formatters': {
+		'complete_formatter': {
+			'format': '[$levelname]\t[$asctime]\t[$pathname]\t$message',
+			'style': '$',
+			'datefmt': '%Y-%m-%d %H:%M:%S%z'
+		},
+		'simple_formatter': {
+
+		}
+	},
+	'handlers': {
+		'console': {
+			'class': 'logging.StreamHandler',
+			'level': 'DEBUG',
+			'formatter': 'complete_formatter',
+			'stream': 'ext://sys.stdout'
+		}
+	},
+	'loggers': {
+		APP_LOGGER_ROOT_NAME: {
+			'handlers': ['console'],
+			'level': 'DEBUG',
+		}
+	},
+	'root': {
+		'level': 'DEBUG'
+	},
+	'disable_existing_loggers': False,
+})
+
+logger: Logger = logging.getLogger('.'.join([APP_LOGGER_ROOT_NAME, __name__]))
 
 
 def _validate_ip_v4(raw_ip_v4: str) -> str:
